@@ -30,32 +30,58 @@ class Main
     safe_reports = 0
     reports.each do |report|
       parsed_report = report.map(&:to_i)
-      is_a_safe_report = true
-      parsed_report.each_with_index do |level, index|
-        next_level = parsed_report[index + 1]
-        if next_level.nil?
-          is_a_safe_report = true
-          break
-        end
-
-        if difference_between_levels(level, next_level) >= 4 || difference_between_levels(level, next_level).zero? 
-          is_a_safe_report = false
-          break
-        end
-
-        next nominated_operator(level, next_level) if index.zero?
-
-        puts "#{level} #{@nominated_operator} #{next_level}"
-        continued_sequence = eval("#{level} #{@nominated_operator} #{next_level}")
-        if continued_sequence == false
-          is_a_safe_report = false
-          break
-        end
+      
+      result = is_a_safe_report(parsed_report)
+      is_a_safe_report = result[:success]
+      if result[:success] == false
+        tolerance_result = tolerance_attempt(parsed_report, result[:level_to_remove])
+        is_a_safe_report = tolerance_result.nil? ? false : true
       end
+
+      if tolerance_result
+        puts "Original: #{parsed_report} Removed Index #{tolerance_result[:index]} List Result #{tolerance_result[:list]} is #{is_a_safe_report ? 'Safe' : 'Unsafe'}"
+      end
+
       safe_reports += 1 if is_a_safe_report
     end
 
     safe_reports
+  end
+
+  def tolerance_attempt(parsed_report, failed_index)
+    tolerances = (0..failed_index).map do |index_to_remove|
+      list_without_index = parsed_report.clone
+      list_without_index.delete_at(index_to_remove)
+      { list: list_without_index, index: failed_index }.merge(is_a_safe_report(list_without_index))
+    end
+
+    tolerances.find{ |x| x[:success] == true }
+  end
+
+  def is_a_safe_report(parsed_report)
+    parsed_report.each_with_index do |level, index|
+      return { success: false, level_to_remove: index + 1 }  if is_a_safe_level(parsed_report, level, index) == false
+    end
+
+    { success: true }
+  end
+
+  def is_a_safe_level(report, level, index)
+    next_level = report[index + 1]
+    if next_level.nil?
+      return true
+    end
+
+    if difference_between_levels(level, next_level) >= 4 || difference_between_levels(level, next_level).zero? 
+      return false
+    end
+
+    return nominated_operator(level, next_level) if index.zero?
+
+    continued_sequence = eval("#{level} #{@nominated_operator} #{next_level}")
+    if continued_sequence == false
+      return false
+    end
   end
 
   def difference_between_levels(level, next_level)
@@ -63,7 +89,7 @@ class Main
   end
   
   def nominated_operator(level, next_level)
-    @nominated_operator = level - next_level > 0 ? '>' : '<' 
+    @nominated_operator = (level - next_level) > 0 ? '>' : '<' 
   end
 
   def process_reports
