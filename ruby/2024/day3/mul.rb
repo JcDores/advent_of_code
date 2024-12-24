@@ -18,24 +18,36 @@
 class Mul
   attr_accessor :corrupted_memory, :file_name
 
-  UNCORRUPTED_MUL_REGEX = /mul\(\d*,\d*\)/
+  UNCORRUPTED_BITS_REGEX = /don't\(\)|do\(\)|mul\(\d*,\d*\)/
+  MUL_REGEX = /mul\(\d*,\d*\)/
   
   def initialize(file_name)
     @file = File.open(file_name, 'r')
     @corrupted_memory = @file.read
-    @uncorrupted_muls = []
-    @counter = 0
+    @uncorrupted_bits = []
+    @mul_count = 0
+    @mul_enabled = true
   end
 
   def process_memory
     scan_memory
-    @counter = 0
-    @uncorrupted_muls.each do |mul|
-      result =  eval(mul)
-      @counter += result
+    @uncorrupted_bits.each do |bit|
+      check_do_or_dont(bit)
+      next unless @mul_enabled
+
+      next unless bit.match?(MUL_REGEX)
+
+      result = eval(bit) 
+      @mul_count += result
     end
 
-    @counter
+    @mul_count
+  end
+
+  def check_do_or_dont(bit)
+    return @mul_enabled = true if bit === 'do()'
+    
+    return @mul_enabled = false if bit === "don't()"
   end
 
   def mul(num1, num2)
@@ -43,11 +55,9 @@ class Mul
   end
 
   def scan_memory
-    @uncorrupted_muls = @corrupted_memory.scan(UNCORRUPTED_MUL_REGEX)
-    puts "FOUND #{@uncorrupted_muls.size} UNCORRUPTED MULS"
+    @uncorrupted_bits = @corrupted_memory.scan(UNCORRUPTED_BITS_REGEX)
+    puts "FOUND #{@uncorrupted_bits.size} UNCORRUPTED BITS"
   end
-
-
 end
 
 puts "The answer is #{Mul.new('input.txt').process_memory}"
