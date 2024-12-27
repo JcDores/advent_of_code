@@ -54,7 +54,10 @@ class Main
   end
 
   def calculate_similiarity
-    
+    @answer = 0
+    @left_list.each_with_index do |left_id|
+      @answer += (left_id * @right_list.count(left_id)).abs
+    end
   end
 
   def get_answer_1
@@ -62,9 +65,13 @@ class Main
     calculate_distance
     @answer
   end
+
+  def get_answer_2
+    process_locations_ids
+    calculate_similiarity
+    @answer
+  end
 end
 
-  
-  
-
 puts "The distance is #{Main.new('input.txt').get_answer_1}"
+puts "The similiarity is #{Main.new('input.txt').get_answer_2}"
