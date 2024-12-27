@@ -16,7 +16,7 @@
 # 
 
 class Main
-  attr_accessor :reports, :file_name, :safe_reports
+  attr_accessor :xmas_wordfind, :file_name, :hits
   def initialize(file_name, target_word)
     @file = File.open(file_name, 'r')
     @xmas_wordfind = @file.read.split("\n").map(&:chars)
