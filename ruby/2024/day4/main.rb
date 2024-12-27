@@ -25,60 +25,73 @@ class Main
   end
 
 
-  def find_word_horizontal(x_index, y_index, word = '')
+  def find_word_horizontal(x_index, y_index, target_word, word = '')
     word += @xmas_wordfind[y_index][x_index]
-    return 1 if word == @target_word || word == @target_word.reverse
+    return 1 if word == target_word
     
-    return 0 if word.size >= @target_word.size
+    return 0 if word.size >= target_word.size
     
     if (x_index + 1) >= @xmas_wordfind[y_index].size
-      return word == @target_word || word == @target_word.reverse ? 1 : 0
+      return word == target_word ? 1 : 0
     end
     
-    find_word_horizontal(x_index + 1, y_index, word)
+    find_word_horizontal(x_index + 1, y_index, target_word, word)
   end
 
-  def find_word_vertical(x_index, y_index, word = '')
+  def find_word_vertical(x_index, y_index, target_word, word = '')
     word += @xmas_wordfind[y_index][x_index]
-    return 1 if word == @target_word || word == @target_word.reverse
+    return 1 if word == target_word
     
-    return 0 if word.size >= @target_word.size
+    return 0 if word.size >= target_word.size
 
     if (y_index + 1) >= @xmas_wordfind.size
-      return word == @target_word || word == @target_word.reverse ? 1 : 0
+      return word == target_word ? 1 : 0
     end
 
-    find_word_vertical(x_index, y_index + 1, word)
+    find_word_vertical(x_index, y_index + 1, target_word, word)
   end
 
-  def find_word_diagonal(x_index, y_index, word = '')
+  def find_word_diagonal(x_index, y_index, target_word, word = '')
     word += @xmas_wordfind[y_index][x_index]
-    return 1 if word == @target_word || word == @target_word.reverse
-    
-    return 0 if word.size >= @target_word.size
+    return 1 if word == target_word
+
+    return 0 if word.size >= target_word.size
 
     if (y_index + 1) >= @xmas_wordfind.size || (x_index + 1) >= @xmas_wordfind[y_index].size
-      return word == @target_word || word == @target_word.reverse ? 1 : 0
+      return word == target_word ? 1 : 0
     end
 
-    find_word_diagonal(x_index + 1, y_index + 1, word)
+    find_word_diagonal(x_index + 1, y_index + 1, target_word, word)
   end
 
-  def find_word_reverse_diagonal(x_index, y_index, word = '')
+  def find_word_reverse_diagonal(x_index, y_index, target_word, word = '')
     word += @xmas_wordfind[y_index][x_index]
-    return 1 if word == @target_word || word == @target_word.reverse
-    
-    return 0 if word.size >= @target_word.size
+    return 1 if word == target_word
+
+    return 0 if word.size >= target_word.size
 
     if (x_index - 1) < 0 || (y_index + 1) >= @xmas_wordfind.size
-      return word == @target_word || word == @target_word.reverse ? 1 : 0
+      return word == @target_word ? 1 : 0
     end
 
-    find_word_reverse_diagonal(x_index - 1, y_index + 1, word)
+    find_word_reverse_diagonal(x_index - 1, y_index + 1, target_word, word)
   end
 
   def find_all_directions(x, y)
-    find_word_horizontal(x, y) + find_word_vertical(x, y) + find_word_diagonal(x, y) + find_word_reverse_diagonal(x, y)
+    find_word_horizontal(x, y, @target_word) + find_word_vertical(x, y, @target_word) + 
+    find_word_diagonal(x, y, @target_word) + find_word_reverse_diagonal(x, y, @target_word) +
+    find_word_horizontal(x, y, @target_word.reverse) + find_word_vertical(x, y, @target_word.reverse) + 
+    find_word_diagonal(x, y, @target_word.reverse) + find_word_reverse_diagonal(x, y, @target_word.reverse)
+  end
+
+  def find_x_shaped(x1,y1, x2, y2)
+    found_shaped = 0
+    found_shaped += 1 if find_word_diagonal(x1, y1, @target_word) == 1 && find_word_reverse_diagonal(x2, y2, @target_word) == 1
+    found_shaped += 1 if find_word_diagonal(x1, y1, @target_word.reverse) == 1 && find_word_reverse_diagonal(x2, y2, @target_word) == 1
+    found_shaped += 1 if find_word_diagonal(x1, y1, @target_word) == 1 && find_word_reverse_diagonal(x2, y2, @target_word.reverse) == 1
+    found_shaped += 1 if find_word_diagonal(x1, y1, @target_word.reverse) == 1 && find_word_reverse_diagonal(x2, y2, @target_word.reverse) == 1
+
+    found_shaped
   end
 
   def iterate_wordfind_part1
@@ -93,14 +106,17 @@ class Main
   end
 
   def iterate_wordfind_part2
+    chars_to_start = @target_word[0], @target_word[-1]
     @xmas_wordfind.each_with_index do |wordrow, y|
       wordrow.each_with_index do |wordcol, x|
-        if wordcol == @target_word[0] && wordrow[x + 2] == @target_word[-1]
-          @hits += find_all_directions(x, y)
+        if chars_to_start.include?(wordcol) && chars_to_start.include?(wordrow[x + 2]) && (x + 2) < wordrow.size
+          @hits += find_x_shaped(x, y, x + 2, y)
         end
       end
     end
+    @hits
   end
 end
 
-puts "Finding in XMAS in wordfind ... #{Main.new('input.txt', 'XMAS').iterate_wordfind_part1} XMAS found."
+puts "Finding in XMAS in wordfind ... #{Main.new('input.txt', 'XMAS').iterate_wordfind_part1} found."
+puts "Finding in MAS in X shaped wordfind ... #{Main.new('input.txt', 'MAS').iterate_wordfind_part2} MAS found."
