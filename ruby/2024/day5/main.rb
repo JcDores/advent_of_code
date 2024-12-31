@@ -22,14 +22,14 @@ class Main
 
   def is_update_in_good_order(update)
     update.each_with_index do |instruction, index|
-      if @rules.key?(upd)
+      if @rules.key?(instruction)
         previous_instructions = update[0..(index)]
         previous_instructions.each do |prev_instruc|
-          return false if @rules[instruction].include?(prev_instruc)
+          return { failed_index: index, success: false } if @rules[instruction].include?(prev_instruc)
         end
       end
     end
-    true
+    { success: true }
   end
 
   def get_middle_instruction(update)
@@ -37,24 +37,59 @@ class Main
     update[middle_instruction].to_i
   end
 
-  def process_updates
+  def process_good_updates
     good_updates = @updates.filter do |upd|
-      is_update_in_good_order(upd)
+      is_update_in_good_order(upd)[:success]
     end
 
     @answer = good_updates.map{ |upd| get_middle_instruction(upd) }.sum
   end
 
+  def fix_bad_updates(upd)
+    return upd if is_update_in_good_order(upd)[:success]
+
+    failed_index = is_update_in_good_order(upd)[:failed_index]
+    rules = @rules[upd[failed_index]]
+    previous_instructions = upd.slice(0..failed_index)
+    problems = rules & previous_instructions
+
+    prob_index = problems.map { |prob| upd.index(prob) }.max  
+
+    before_problem = prob_index == 0 ? [] : upd.slice(0..prob_index - 1)  
+    problem = upd.slice(prob_index..prob_index)
+    after_problem = upd.slice(prob_index + 1, upd.size) 
+
+    upd = before_problem + after_problem.slice(0, 1) + problem + after_problem.slice(1, after_problem.size)  
+    fix_bad_updates(upd)
+  rescue SystemStackError
+    raise
+  end
+
+  def process_bad_updates
+    bad_updates = @updates.filter do |upd|
+      !is_update_in_good_order(upd)[:success]
+    end
+
+    fixed_updates = bad_updates.map do |upd| 
+      fix_bad_updates(upd)
+    end
+
+    @answer = fixed_updates.map{ |upd| get_middle_instruction(upd) }.sum
+  end
+
+
   def get_answer_1
     process_rules
-    process_updates
+    process_good_updates
     @answer
   end
 
   def get_answer_2
     process_rules
+    process_bad_updates
     @answer
   end
 end
 
-puts "The sum of middle of good updates is #{Main.new('rules.txt', 'updates.txt').get_answer_1}"
+puts "The sum of middle in good updates is #{Main.new('rules.txt', 'updates.txt').get_answer_1}"
+puts "The sum of middle in bad updates is #{Main.new('rules.txt', 'updates.txt').get_answer_2}"
